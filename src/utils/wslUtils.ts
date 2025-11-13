@@ -3,8 +3,8 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-export function isWslPath(folderPath: string): boolean {
-  return folderPath.includes("wsl");
+export function isWslPath(projectPath: string): boolean {
+  return projectPath.includes("wsl");
 }
 
 export async function getDefaultWslDistro(): Promise<string | null> {
@@ -22,6 +22,6 @@ export async function getDefaultWslDistro(): Promise<string | null> {
   }
 }
 
-export function convertToWslPath(folderPath: string): string {
-  return folderPath.replaceAll("\\", "/").replace(/\/\/wsl\.localhost\/.*?\//, "/");
+export function convertToWslPath(projectPath: string): string {
+  return projectPath.replaceAll("\\", "/").replace(/\/\/wsl\.localhost\/.*?\//, "/");
 }

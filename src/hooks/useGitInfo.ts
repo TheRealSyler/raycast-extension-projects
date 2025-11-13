@@ -13,7 +13,7 @@ const gitInfoSchema = z.object({
 
 export type GitInfo = z.infer<typeof gitInfoSchema>;
 
-export function useGitInfo(folderPath: string): { gitInfo: GitInfo | null; isLoading: boolean } {
+export function useGitInfo(projectPath: string): { gitInfo: GitInfo | null; isLoading: boolean } {
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,7 +22,7 @@ export function useGitInfo(folderPath: string): { gitInfo: GitInfo | null; isLoa
 
     (async () => {
       setIsLoading(true);
-      const cachedInfo = await getCachedGitInfo(folderPath);
+      const cachedInfo = await getCachedGitInfo(projectPath);
 
       if (cancelled) return;
       if (cachedInfo) {
@@ -30,7 +30,7 @@ export function useGitInfo(folderPath: string): { gitInfo: GitInfo | null; isLoa
         setIsLoading(false);
       }
 
-      const gitDir = join(folderPath, ".git");
+      const gitDir = join(projectPath, ".git");
       try {
         await access(gitDir);
       } catch {
@@ -38,13 +38,13 @@ export function useGitInfo(folderPath: string): { gitInfo: GitInfo | null; isLoa
         const noRepoInfo: GitInfo = { branch: null };
         setGitInfo(noRepoInfo);
         setIsLoading(false);
-        await setCachedGitInfo(folderPath, noRepoInfo);
+        await setCachedGitInfo(projectPath, noRepoInfo);
 
         return;
       }
 
       try {
-        const git = await getGitInstance(folderPath);
+        const git = await getGitInstance(projectPath);
 
         const branchResult = await fetchBranch(git);
 
@@ -56,38 +56,38 @@ export function useGitInfo(folderPath: string): { gitInfo: GitInfo | null; isLoa
 
         setGitInfo(finalInfo);
         setIsLoading(false);
-        await setCachedGitInfo(folderPath, finalInfo);
+        await setCachedGitInfo(projectPath, finalInfo);
       } catch (err) {
-        console.error(`Failed to get git info for ${folderPath}:`, err);
+        console.error(`Failed to get git info for ${projectPath}:`, err);
         if (cancelled) return;
         const errorInfo: GitInfo = { branch: null };
         setGitInfo(errorInfo);
         setIsLoading(false);
-        await setCachedGitInfo(folderPath, errorInfo);
+        await setCachedGitInfo(projectPath, errorInfo);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [folderPath]);
+  }, [projectPath]);
 
   return { gitInfo, isLoading };
 }
 
-async function getGitInstance(folderPath: string): Promise<SimpleGit> {
-  if (isWslPath(folderPath)) {
+async function getGitInstance(projectPath: string): Promise<SimpleGit> {
+  if (isWslPath(projectPath)) {
     return simpleGit({
-      baseDir: folderPath,
+      baseDir: projectPath,
       binary: ["wsl", "git"],
     });
   }
-  return simpleGit(folderPath);
+  return simpleGit(projectPath);
 }
 
-async function getCachedGitInfo(folderPath: string): Promise<GitInfo | null> {
+async function getCachedGitInfo(projectPath: string): Promise<GitInfo | null> {
   try {
-    const cacheJson = await LocalStorage.getItem(`${GIT_INFO_CACHE_KEY}:${folderPath}`);
+    const cacheJson = await LocalStorage.getItem(`${GIT_INFO_CACHE_KEY}:${projectPath}`);
     if (cacheJson && typeof cacheJson === "string") {
       const parsed = JSON.parse(cacheJson);
       return gitInfoSchema.parse(parsed);
@@ -98,11 +98,11 @@ async function getCachedGitInfo(folderPath: string): Promise<GitInfo | null> {
   }
 }
 
-async function setCachedGitInfo(folderPath: string, info: GitInfo): Promise<void> {
+async function setCachedGitInfo(projectPath: string, info: GitInfo): Promise<void> {
   try {
-    await LocalStorage.setItem(`${GIT_INFO_CACHE_KEY}:${folderPath}`, JSON.stringify(info));
+    await LocalStorage.setItem(`${GIT_INFO_CACHE_KEY}:${projectPath}`, JSON.stringify(info));
   } catch (err) {
-    console.error(`Failed to cache git info for ${folderPath}:`, err);
+    console.error(`Failed to cache git info for ${projectPath}:`, err);
   }
 }
 

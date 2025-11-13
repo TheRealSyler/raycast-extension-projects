@@ -1,26 +1,26 @@
 import { Action, ActionPanel, Color, Form, Icon, popToRoot, showToast, Toast } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { Folder } from "../hooks/useFolders";
+import { Project } from "../hooks/useProjects";
 import { COMMON_COLORS, COMMON_ICONS } from "../utils/constants";
-import { FolderCustomization, getFolderCustomization } from "../utils/folderCustomization";
+import { getProjectCustomization, ProjectCustomization } from "../utils/projectCustomization";
 
-interface CustomizeFolderFormProps {
-  folder: Folder;
-  onCustomize: (folderPath: string, customization: FolderCustomization) => Promise<void>;
+interface CustomizeProjectFormProps {
+  project: Project;
+  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization>) => Promise<void>;
 }
 
-export function CustomizeFolderForm({ folder, onCustomize }: CustomizeFolderFormProps) {
-  const [currentCustomization, setCurrentCustomization] = useState<FolderCustomization | null>(null);
+export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectFormProps) {
+  const [currentCustomization, setCurrentCustomization] = useState<ProjectCustomization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [_currentColor, setCurrentColor] = useState<string>();
 
   useEffect(() => {
     (async () => {
-      const customization = await getFolderCustomization(folder.path);
-      setCurrentCustomization(customization || {});
+      const customization = await getProjectCustomization(project.path);
+      setCurrentCustomization(customization || null);
       setIsLoading(false);
     })();
-  }, [folder.path]);
+  }, [project.path]);
 
   if (isLoading) {
     return <Form isLoading={true} />;
@@ -36,15 +36,15 @@ export function CustomizeFolderForm({ folder, onCustomize }: CustomizeFolderForm
           <Action.SubmitForm
             title="Save Customization"
             onSubmit={async (values) => {
-              const customization: FolderCustomization = {
+              const customization: ProjectCustomization = {
                 icon: values.icon || undefined,
                 color: values.color || undefined,
               };
-              await onCustomize(folder.path, customization);
+              await onCustomize(project.path, customization);
               await showToast({
                 style: Toast.Style.Success,
                 title: "Customization saved",
-                message: `Customization saved for ${folder.name}`,
+                message: `Customization saved for ${project.name}`,
               });
               popToRoot();
             }}
@@ -55,11 +55,11 @@ export function CustomizeFolderForm({ folder, onCustomize }: CustomizeFolderForm
             <Action
               title="Reset to Default"
               onAction={async () => {
-                await onCustomize(folder.path, {});
+                await onCustomize(project.path, { icon: undefined, color: undefined });
                 await showToast({
                   style: Toast.Style.Success,
                   title: "Customization reset",
-                  message: `Customization reset for ${folder.name}`,
+                  message: `Customization reset for ${project.name}`,
                 });
                 popToRoot();
               }}
@@ -70,10 +70,10 @@ export function CustomizeFolderForm({ folder, onCustomize }: CustomizeFolderForm
         </ActionPanel>
       }
     >
-      <Form.Description title="Folder" text={folder.name} />
-      <Form.Description title="Path" text={folder.path} />
+      <Form.Description title="Project" text={project.name} />
+      <Form.Description title="Path" text={project.path} />
       <Form.Separator />
-      <Form.Dropdown id="icon" title="Icon" defaultValue={currentIcon} info="Choose an icon for this folder">
+      <Form.Dropdown id="icon" title="Icon" defaultValue={currentIcon} info="Choose an icon for this project">
         {COMMON_ICONS.map((icon) => (
           <Form.Dropdown.Item
             key={icon.value}
@@ -88,7 +88,7 @@ export function CustomizeFolderForm({ folder, onCustomize }: CustomizeFolderForm
         title="Color"
         onChange={(value) => setCurrentColor(value)}
         defaultValue={currentColor}
-        info="Choose a color for this folder's icon"
+        info="Choose a color for this project's icon"
       >
         {COMMON_COLORS.map((color) => (
           <Form.Dropdown.Item

@@ -1,38 +1,38 @@
 import { getPreferenceValues, showToast, Toast } from "@raycast/api";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { recordFolderOpened } from "./folderMetadata";
+import { recordProjectOpened } from "./projectMetadata";
 import { convertToWslPath, getDefaultWslDistro, isWslPath } from "./wslUtils";
 
 const execAsync = promisify(exec);
 
-async function getCommand(folderPath: string): Promise<string> {
+async function getCommand(projectPath: string): Promise<string> {
   const preferences = getPreferenceValues<Preferences>();
-  if (isWslPath(folderPath)) {
+  if (isWslPath(projectPath)) {
     console.log(preferences);
     const defaultDistro = await getDefaultWslDistro();
     if (!defaultDistro) {
       throw new Error("Could not find default WSL distro");
     }
-    return `${preferences.editor} -n --remote=wsl+${defaultDistro} ${convertToWslPath(folderPath)}`;
+    return `${preferences.editor} -n --remote=wsl+${defaultDistro} ${convertToWslPath(projectPath)}`;
   }
-  return `${preferences.editor} ${folderPath}`;
+  return `${preferences.editor} ${projectPath}`;
 }
 
-export async function openInEditor(folderPath: string) {
+export async function openInEditor(projectPath: string) {
   try {
-    const command = await getCommand(folderPath);
+    const command = await getCommand(projectPath);
     await execAsync(command);
 
-    await recordFolderOpened(folderPath);
+    await recordProjectOpened(projectPath);
 
     await showToast({
       style: Toast.Style.Success,
       title: "Opening project",
-      message: `Opening ${folderPath}`,
+      message: `Opening ${projectPath}`,
     });
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : "Failed to open folder";
+    const errorMessage = err instanceof Error ? err.message : "Failed to open project";
     await showToast({
       style: Toast.Style.Failure,
       title: "Error",

@@ -3,20 +3,20 @@ import { readdir } from "fs/promises";
 import { join } from "path";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { FOLDERS_CACHE_KEY } from "../utils/constants";
-import { getFolderMetadataMap } from "../utils/folderMetadata";
+import { PROJECTS_CACHE_KEY } from "../utils/constants";
+import { getProjectMetadataMap } from "../utils/projectMetadata";
 
-const folderSchema = z.object({
+const projectSchema = z.object({
   name: z.string(),
   path: z.string(),
 });
 
-const foldersSchema = z.array(folderSchema);
+const projectsSchema = z.array(projectSchema);
 
-export type Folder = z.infer<typeof folderSchema>;
+export type Project = z.infer<typeof projectSchema>;
 
-export function useFolders(): { folders: Folder[]; isLoading: boolean; error: string | null; refresh: () => void } {
-  const [folders, setFolders] = useState<Folder[]>([]);
+export function useProjects(): { projects: Project[]; isLoading: boolean; error: string | null; refresh: () => void } {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
@@ -32,13 +32,13 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
       setIsLoading(true);
       setError(null);
 
-      const cachedFolders = await getCachedFolders();
+      const cachedProjects = await getCachedProjects();
       if (cancelled) return;
-      if (cachedFolders) {
-        const metadataMap = await getFolderMetadataMap();
-        const sortedFolders = [...cachedFolders];
-        sortFoldersByMetadata(sortedFolders, metadataMap);
-        setFolders(sortedFolders);
+      if (cachedProjects) {
+        const metadataMap = await getProjectMetadataMap();
+        const sortedProjects = [...cachedProjects];
+        sortProjectsByMetadata(sortedProjects, metadataMap);
+        setProjects(sortedProjects);
         setIsLoading(false);
       }
 
@@ -49,7 +49,7 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
           .map((dir) => dir.trim())
           .filter((dir) => dir.length > 0);
 
-        const folderList: Folder[] = [];
+        const projectList: Project[] = [];
 
         for (const directory of directories) {
           if (cancelled) return;
@@ -58,10 +58,10 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
 
             for (const entry of entries) {
               if (entry.isDirectory()) {
-                const folderPath = join(directory, entry.name);
-                folderList.push({
+                const projectPath = join(directory, entry.name);
+                projectList.push({
                   name: entry.name,
-                  path: folderPath,
+                  path: projectPath,
                 });
               }
             }
@@ -72,17 +72,17 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
 
         if (cancelled) return;
 
-        const metadataMap = await getFolderMetadataMap();
+        const metadataMap = await getProjectMetadataMap();
 
-        sortFoldersByMetadata(folderList, metadataMap);
+        sortProjectsByMetadata(projectList, metadataMap);
 
-        setFolders(folderList);
+        setProjects(projectList);
         setIsLoading(false);
-        await setCachedFolders(folderList);
+        await setCachedProjects(projectList);
       } catch (err) {
         if (cancelled) return;
-        const errorMessage = err instanceof Error ? err.message : "Failed to load folders";
-        console.error("Failed to load folders:", err);
+        const errorMessage = err instanceof Error ? err.message : "Failed to load projects";
+        console.error("Failed to load projects:", err);
         setError(errorMessage);
         setIsLoading(false);
       }
@@ -93,15 +93,15 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
     };
   }, [internalRefreshTrigger]);
 
-  return { folders, isLoading, error, refresh };
+  return { projects, isLoading, error, refresh };
 }
 
-async function getCachedFolders(): Promise<Folder[] | null> {
+async function getCachedProjects(): Promise<Project[] | null> {
   try {
-    const cacheJson = await LocalStorage.getItem(FOLDERS_CACHE_KEY);
+    const cacheJson = await LocalStorage.getItem(PROJECTS_CACHE_KEY);
     if (cacheJson && typeof cacheJson === "string") {
       const parsed = JSON.parse(cacheJson);
-      return foldersSchema.parse(parsed);
+      return projectsSchema.parse(parsed);
     }
     return null;
   } catch {
@@ -109,19 +109,19 @@ async function getCachedFolders(): Promise<Folder[] | null> {
   }
 }
 
-async function setCachedFolders(folders: Folder[]): Promise<void> {
+async function setCachedProjects(projects: Project[]): Promise<void> {
   try {
-    await LocalStorage.setItem(FOLDERS_CACHE_KEY, JSON.stringify(folders));
+    await LocalStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(projects));
   } catch (err) {
-    console.error("Failed to cache folders:", err);
+    console.error("Failed to cache projects:", err);
   }
 }
 
-function sortFoldersByMetadata(
-  folderList: Folder[],
+function sortProjectsByMetadata(
+  projectList: Project[],
   metadataMap: Record<string, { starred?: boolean; lastOpened?: number }>,
 ): void {
-  folderList.sort((a, b) => {
+  projectList.sort((a, b) => {
     const metadataA = metadataMap[a.path] || { starred: false };
     const metadataB = metadataMap[b.path] || { starred: false };
 

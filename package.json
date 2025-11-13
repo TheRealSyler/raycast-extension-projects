@@ -2,14 +2,14 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "projects",
   "title": "Projects",
-  "description": "quickly open folder in a code editor",
+  "description": "Quickly open projects in a code editor",
   "icon": "extension-icon.png",
   "license": "MIT",
   "commands": [
     {
       "name": "commands/openProject",
       "title": "Open Project",
-      "description": "Open a project folder in your code editor",
+      "description": "Open a project in your code editor",
       "mode": "view"
     }
   ],
@@ -19,7 +19,7 @@
       "type": "textfield",
       "required": true,
       "title": "Projects Directory",
-      "description": "Path to the directory containing your project folders. Use comma separated values for multiple directories.",
+      "description": "Path to the directory containing your projects. Use comma separated values for multiple directories.",
       "placeholder": "e.g., C:\\Users\\username\\Projects or /Users/username/Projects"
     },
     {

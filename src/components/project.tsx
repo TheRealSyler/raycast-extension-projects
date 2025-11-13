@@ -1,42 +1,42 @@
 import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
-import { Folder } from "../hooks/useFolders";
+import { Project } from "../hooks/useProjects";
 import { useGitInfo } from "../hooks/useGitInfo";
-import { FolderCustomization, FolderCustomizations } from "../utils/folderCustomization";
-import { getFolderMetadata, toggleStarred } from "../utils/folderMetadata";
+import { ProjectCustomization, ProjectCustomizations } from "../utils/projectCustomization";
+import { getProjectMetadata, toggleStarred } from "../utils/projectMetadata";
 import { openInEditor } from "../utils/openInEditor";
-import { CustomizeFolderForm } from "./customizeFolderForm";
+import { CustomizeProjectForm } from "./customizeProjectForm";
 
-type ProjectFolderProps = {
-  folder: Folder;
-  customizations: FolderCustomizations;
-  onCustomize: (folderPath: string, customization: FolderCustomization) => Promise<void>;
+type ProjectProps = {
+  project: Project;
+  customizations: ProjectCustomizations;
+  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization>) => Promise<void>;
   onStarToggle?: () => void;
   onOpen?: () => void;
 };
 
-export function ProjectFolder({ folder, customizations, onCustomize, onStarToggle, onOpen }: ProjectFolderProps) {
-  const { gitInfo, isLoading } = useGitInfo(folder.path);
+export function Project({ project, customizations, onCustomize, onStarToggle, onOpen }: ProjectProps) {
+  const { gitInfo, isLoading } = useGitInfo(project.path);
   const [isStarred, setIsStarred] = useState(false);
   const [lastOpened, setLastOpened] = useState<number | undefined>(undefined);
 
   const loadMetadata = useCallback(async () => {
-    const metadata = await getFolderMetadata(folder.path);
+    const metadata = await getProjectMetadata(project.path);
     setIsStarred(metadata.starred ?? false);
     setLastOpened(metadata.lastOpened);
-  }, [folder.path]);
+  }, [project.path]);
 
   useEffect(() => {
     loadMetadata();
   }, [loadMetadata]);
 
   const handleToggleStar = async () => {
-    const newStarredStatus = await toggleStarred(folder.path);
+    const newStarredStatus = await toggleStarred(project.path);
     setIsStarred(newStarredStatus);
     onStarToggle?.();
   };
 
-  const customization = customizations[folder.path];
+  const customization = customizations[project.path];
 
   const accessories: List.Item.Accessory[] = [];
   if (isStarred) {
@@ -61,8 +61,8 @@ export function ProjectFolder({ folder, customizations, onCustomize, onStarToggl
 
   return (
     <List.Item
-      key={folder.path}
-      title={folder.name}
+      key={project.path}
+      title={project.name}
       icon={customization ? { source: customization.icon, tintColor: customization.color } : { source: "" }}
       accessories={accessories}
       actions={
@@ -70,7 +70,7 @@ export function ProjectFolder({ folder, customizations, onCustomize, onStarToggl
           <Action
             title="Open in Editor"
             onAction={async () => {
-              await openInEditor(folder.path);
+              await openInEditor(project.path);
               await loadMetadata();
               onOpen?.();
             }}
@@ -84,7 +84,7 @@ export function ProjectFolder({ folder, customizations, onCustomize, onStarToggl
           <Action.Push
             title="Customize Project"
             icon={Icon.Brush}
-            target={<CustomizeFolderForm folder={folder} onCustomize={onCustomize} />}
+            target={<CustomizeProjectForm project={project} onCustomize={onCustomize} />}
           />
         </ActionPanel>
       }

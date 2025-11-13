@@ -1,51 +1,51 @@
 import { Icon, List } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
-import { ProjectFolder } from "../components/projectFolder";
-import { useFolders } from "../hooks/useFolders";
+import { Project } from "../components/project";
+import { useProjects } from "../hooks/useProjects";
 import {
-  FolderCustomization,
-  FolderCustomizations,
-  getFolderCustomizations,
-  saveFolderCustomization,
-} from "../utils/folderCustomization";
+  ProjectCustomization,
+  ProjectCustomizations,
+  getProjectCustomizations,
+  saveProjectCustomization,
+} from "../utils/projectCustomization";
 
 export default function Command() {
-  const { folders, isLoading, error, refresh } = useFolders();
-  const [customizations, setCustomizations] = useState<FolderCustomizations>({});
+  const { projects, isLoading, error, refresh } = useProjects();
+  const [customizations, setCustomizations] = useState<ProjectCustomizations>({});
 
   useEffect(() => {
     (async () => {
-      const customizationsData = await getFolderCustomizations();
+      const customizationsData = await getProjectCustomizations();
       setCustomizations(customizationsData);
     })();
   }, []);
 
-  const handleCustomize = useCallback(async (folderPath: string, customization: FolderCustomization) => {
-    await saveFolderCustomization(folderPath, customization);
-    setCustomizations(await getFolderCustomizations());
+  const handleCustomize = useCallback(async (projectPath: string, customization: Partial<ProjectCustomization>) => {
+    await saveProjectCustomization(projectPath, customization);
+    setCustomizations(await getProjectCustomizations());
   }, []);
 
   if (error) {
     return (
       <List>
-        <List.EmptyView icon={Icon.ExclamationMark} title="Error loading folders" description={error} />
+        <List.EmptyView icon={Icon.ExclamationMark} title="Error loading projects" description={error} />
       </List>
     );
   }
 
   return (
     <List isLoading={isLoading} searchBarPlaceholder="Search projects...">
-      {folders.length === 0 && !isLoading ? (
+      {projects.length === 0 && !isLoading ? (
         <List.EmptyView
           icon={Icon.Folder}
-          title="No folders found"
-          description={`No folders found in the specified directories`}
+          title="No projects found"
+          description={`No projects found in the specified directories`}
         />
       ) : (
-        folders.map((folder) => (
-          <ProjectFolder
-            key={folder.path}
-            folder={folder}
+        projects.map((project) => (
+          <Project
+            key={project.path}
+            project={project}
             customizations={customizations}
             onCustomize={handleCustomize}
             onStarToggle={refresh}
