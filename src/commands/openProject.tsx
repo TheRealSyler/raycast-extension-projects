@@ -1,33 +1,22 @@
-import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
+import { Icon, List } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
-import { CustomizeFolderForm } from "../components/customizeFolderForm";
+import { ProjectFolder } from "../components/projectFolder";
+import { useFolders } from "../hooks/useFolders";
 import {
   FolderCustomization,
   FolderCustomizations,
   getFolderCustomizations,
   saveFolderCustomization,
 } from "../utils/folderCustomization";
-import { Folder, loadFolders } from "../utils/loadFolders";
-import { openInEditor } from "../utils/openInEditor";
 
 export default function Command() {
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { folders, isLoading, error } = useFolders();
   const [customizations, setCustomizations] = useState<FolderCustomizations>({});
 
   useEffect(() => {
     (async () => {
-      setIsLoading(true);
       const customizationsData = await getFolderCustomizations();
       setCustomizations(customizationsData);
-      const { error, folders } = await loadFolders();
-      if (error) {
-        setError(error);
-      } else {
-        setFolders(folders);
-      }
-      setIsLoading(false);
     })();
   }, []);
 
@@ -53,29 +42,14 @@ export default function Command() {
           description={`No folders found in the specified directories`}
         />
       ) : (
-        folders.map((folder) => {
-          const customization = customizations[folder.path];
-          const iconSource = customization?.icon || Icon.Code;
-          const iconColor = customization?.color || Color.Blue;
-
-          return (
-            <List.Item
-              key={folder.path}
-              title={folder.name}
-              icon={{ source: iconSource, tintColor: iconColor }}
-              actions={
-                <ActionPanel>
-                  <Action title="Open in Editor" onAction={() => openInEditor(folder.path)} />
-                  <Action.Push
-                    title="Customize Folder"
-                    icon={Icon.Brush}
-                    target={<CustomizeFolderForm folder={folder} onCustomize={handleCustomize} />}
-                  />
-                </ActionPanel>
-              }
-            />
-          );
-        })
+        folders.map((folder) => (
+          <ProjectFolder
+            key={folder.path}
+            folder={folder}
+            customizations={customizations}
+            onCustomize={handleCustomize}
+          />
+        ))
       )}
     </List>
   );

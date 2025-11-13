@@ -1,8 +1,8 @@
 import { Action, ActionPanel, Color, Form, Icon, popToRoot, showToast, Toast } from "@raycast/api";
 import { useEffect, useState } from "react";
+import { Folder } from "../hooks/useFolders";
 import { COMMON_COLORS, COMMON_ICONS } from "../utils/constants";
 import { FolderCustomization, getFolderCustomization } from "../utils/folderCustomization";
-import { Folder } from "../utils/loadFolders";
 
 interface CustomizeFolderFormProps {
   folder: Folder;

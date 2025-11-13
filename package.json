@@ -43,6 +43,7 @@
   "dependencies": {
     "@raycast/api": "^1.103.0",
     "@raycast/utils": "^2.2.1",
+    "simple-git": "^3.30.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

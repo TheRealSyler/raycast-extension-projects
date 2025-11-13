@@ -1,27 +1,9 @@
 import { getPreferenceValues, showToast, Toast } from "@raycast/api";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { convertToWslPath, getDefaultWslDistro, isWslPath } from "./wslUtils";
 
 const execAsync = promisify(exec);
-
-function isWslPath(folderPath: string): boolean {
-  return folderPath.includes("wsl");
-}
-
-async function getDefaultWslDistro(): Promise<string | null> {
-  try {
-    const { stdout } = await execAsync("wsl --status");
-
-    const match = stdout.replaceAll("\x00", "").match(/Default Distribution:\s*(.+)/i);
-    if (match && match[1]) {
-      return match[1].trim();
-    }
-    return null;
-  } catch (err) {
-    console.error("Failed to get default WSL distro:", err);
-    return null;
-  }
-}
 
 async function getCommand(folderPath: string): Promise<string> {
   const preferences = getPreferenceValues<Preferences>();
@@ -31,9 +13,7 @@ async function getCommand(folderPath: string): Promise<string> {
     if (!defaultDistro) {
       throw new Error("Could not find default WSL distro");
     }
-    return `${preferences.editor} -n --remote=wsl+${defaultDistro} ${folderPath
-      .replaceAll("\\", "/")
-      .replace(/\/\/wsl\.localhost\/.*?\//, "/")}`;
+    return `${preferences.editor} -n --remote=wsl+${defaultDistro} ${convertToWslPath(folderPath)}`;
   }
   return `${preferences.editor} ${folderPath}`;
 }
@@ -56,4 +36,3 @@ export async function openInEditor(folderPath: string) {
     });
   }
 }
-
