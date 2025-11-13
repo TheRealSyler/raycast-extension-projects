@@ -1,9 +1,10 @@
 import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import { readdir } from "fs/promises";
 import { join } from "path";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { FOLDERS_CACHE_KEY } from "../utils/constants";
+import { getFolderMetadataMap } from "../utils/folderMetadata";
 
 const folderSchema = z.object({
   name: z.string(),
@@ -14,10 +15,15 @@ const foldersSchema = z.array(folderSchema);
 
 export type Folder = z.infer<typeof folderSchema>;
 
-export function useFolders(): { folders: Folder[]; isLoading: boolean; error: string | null } {
+export function useFolders(): { folders: Folder[]; isLoading: boolean; error: string | null; refresh: () => void } {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
+
+  const refresh = useCallback(() => {
+    setInternalRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +35,10 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
       const cachedFolders = await getCachedFolders();
       if (cancelled) return;
       if (cachedFolders) {
-        setFolders(cachedFolders);
+        const metadataMap = await getFolderMetadataMap();
+        const sortedFolders = [...cachedFolders];
+        sortFoldersByMetadata(sortedFolders, metadataMap);
+        setFolders(sortedFolders);
         setIsLoading(false);
       }
 
@@ -63,7 +72,9 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
 
         if (cancelled) return;
 
-        folderList.sort((a, b) => a.name.localeCompare(b.name));
+        const metadataMap = await getFolderMetadataMap();
+
+        sortFoldersByMetadata(folderList, metadataMap);
 
         setFolders(folderList);
         setIsLoading(false);
@@ -80,9 +91,9 @@ export function useFolders(): { folders: Folder[]; isLoading: boolean; error: st
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [internalRefreshTrigger]);
 
-  return { folders, isLoading, error };
+  return { folders, isLoading, error, refresh };
 }
 
 async function getCachedFolders(): Promise<Folder[] | null> {
@@ -104,4 +115,32 @@ async function setCachedFolders(folders: Folder[]): Promise<void> {
   } catch (err) {
     console.error("Failed to cache folders:", err);
   }
+}
+
+function sortFoldersByMetadata(
+  folderList: Folder[],
+  metadataMap: Record<string, { starred?: boolean; lastOpened?: number }>,
+): void {
+  folderList.sort((a, b) => {
+    const metadataA = metadataMap[a.path] || { starred: false };
+    const metadataB = metadataMap[b.path] || { starred: false };
+
+    const starredA = metadataA.starred ?? false;
+    const starredB = metadataB.starred ?? false;
+
+    // If one is starred and the other isn't, starred comes first
+    if (starredA && !starredB) return -1;
+    if (!starredA && starredB) return 1;
+
+    // Both are starred or both are not starred - sort by lastOpened
+    const lastOpenedA = metadataA.lastOpened ?? 0;
+    const lastOpenedB = metadataB.lastOpened ?? 0;
+
+    // Most recent first (descending order)
+    if (lastOpenedB !== lastOpenedA) {
+      return lastOpenedB - lastOpenedA;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
 }

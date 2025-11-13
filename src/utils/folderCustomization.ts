@@ -3,8 +3,8 @@ import { z } from "zod";
 import { STORAGE_KEY } from "./constants";
 
 const folderCustomizationSchema = z.object({
-  icon: z.string().optional(),
-  color: z.string().optional(),
+  icon: z.string(),
+  color: z.string(),
 });
 
 const folderCustomizationsSchema = z.record(z.string(), folderCustomizationSchema);

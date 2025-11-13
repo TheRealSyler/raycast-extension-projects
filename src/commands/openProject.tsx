@@ -10,7 +10,7 @@ import {
 } from "../utils/folderCustomization";
 
 export default function Command() {
-  const { folders, isLoading, error } = useFolders();
+  const { folders, isLoading, error, refresh } = useFolders();
   const [customizations, setCustomizations] = useState<FolderCustomizations>({});
 
   useEffect(() => {
@@ -48,6 +48,8 @@ export default function Command() {
             folder={folder}
             customizations={customizations}
             onCustomize={handleCustomize}
+            onStarToggle={refresh}
+            onOpen={refresh}
           />
         ))
       )}
