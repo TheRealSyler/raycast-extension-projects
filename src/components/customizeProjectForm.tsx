@@ -2,7 +2,7 @@ import { Action, ActionPanel, Color, Form, Icon, popToRoot, showToast, Toast } f
 import { useEffect, useState } from "react";
 import type { Project } from "../hooks/useProjects";
 import { COMMON_COLORS, COMMON_ICONS } from "../utils/constants";
-import { DEFAULT_ICON_VALUE, findDefaultIcon } from "../utils/findDefaultIcon";
+import { DEFAULT_ICON_VALUE, findDefaultIcon, getCachedDefaultIcon } from "../utils/findDefaultIcon";
 import { getProjectCustomization, type ProjectCustomization } from "../utils/projectCustomization";
 
 interface CustomizeProjectFormProps {
@@ -20,6 +20,10 @@ export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectF
     (async () => {
       const customization = await getProjectCustomization(project.path);
       setCurrentCustomization(customization || null);
+      const cachedDefaultIcon = await getCachedDefaultIcon(project.path);
+      if (cachedDefaultIcon) {
+        setDefaultIconPath(cachedDefaultIcon);
+      }
       const defaultIcon = await findDefaultIcon(project.path);
       setDefaultIconPath(defaultIcon);
       setIsLoading(false);

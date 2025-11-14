@@ -1,29 +1,12 @@
 import { LocalStorage } from "@raycast/api";
 import { access, readFile } from "fs/promises";
+import { globby } from "globby";
 import { join } from "path";
 import { getStorageKey } from "./constants";
 
-const FILE_ENDINGS = [".svg", ".png"];
-
-const directoryPaths = ["assets", "public", "src/assets"];
-
-function createVariations(iconPath: string): string[] {
-  const paths = [];
-  for (const directoryPath of directoryPaths) {
-    paths.push(...FILE_ENDINGS.map((ending) => `${directoryPath}/${iconPath}${ending}`));
-  }
-  return paths;
-}
-
-const COMMON_ICON_PATHS = [
-  ...createVariations("icon"),
-  ...createVariations("favicon"),
-  ...createVariations("logo"),
-  ...createVariations("app-icon"),
-  ...createVariations("appIcon"),
-];
-
 export const DEFAULT_ICON_VALUE = "__default__";
+const FILE_NAMES = ["icon", "logo", "favicon"];
+const EXTENSIONS = ["svg", "png", "ico", "gif"];
 
 async function getCachedIconForProject(projectPath: string): Promise<string | null | undefined> {
   try {
@@ -78,15 +61,21 @@ export async function findDefaultIcon(projectPath: string): Promise<string | nul
       /* empty */
     }
 
-    for (const iconPath of COMMON_ICON_PATHS) {
-      const fullPath = join(projectPath, iconPath);
-      try {
-        await access(fullPath);
-        await setCachedIconForProject(projectPath, fullPath);
-        return fullPath;
-      } catch {
-        /* empty */
-      }
+    const patterns = FILE_NAMES.flatMap((fileName) => EXTENSIONS.map((extension) => `**/${fileName}.${extension}`));
+
+    const files = await globby(patterns, {
+      cwd: projectPath,
+      onlyFiles: true,
+      caseSensitiveMatch: false,
+      absolute: true,
+      gitignore: true,
+    });
+
+    const iconPath = getIconFromResults(files);
+
+    if (iconPath) {
+      await setCachedIconForProject(projectPath, iconPath);
+      return iconPath;
     }
 
     await setCachedIconForProject(projectPath, null);
@@ -96,4 +85,25 @@ export async function findDefaultIcon(projectPath: string): Promise<string | nul
     await setCachedIconForProject(projectPath, null);
     return null;
   }
+}
+
+function getIconFromResults(results: string[]): string | null {
+  const sortedFiles = results.sort((a, b) => {
+    const aDepth = a.split(/[/\\]/).length;
+    const bDepth = b.split(/[/\\]/).length;
+    if (aDepth !== bDepth) {
+      return aDepth - bDepth;
+    }
+    const aExt = a.split(".").pop()?.toLowerCase() || "";
+    const bExt = b.split(".").pop()?.toLowerCase() || "";
+    const aExtIndex = EXTENSIONS.indexOf(aExt);
+    const bExtIndex = EXTENSIONS.indexOf(bExt);
+    if (aExtIndex !== bExtIndex) {
+      const aPriority = aExtIndex === -1 ? EXTENSIONS.length : aExtIndex;
+      const bPriority = bExtIndex === -1 ? EXTENSIONS.length : bExtIndex;
+      return aPriority - bPriority;
+    }
+    return a.localeCompare(b);
+  });
+  return sortedFiles[0] || null;
 }
