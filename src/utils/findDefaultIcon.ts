@@ -1,41 +1,36 @@
 import { LocalStorage } from "@raycast/api";
 import { access, readFile } from "fs/promises";
 import { join } from "path";
-import { DEFAULT_ICON_CACHE_KEY } from "./constants";
+import { getStorageKey } from "./constants";
+
+const FILE_ENDINGS = [".svg", ".png"];
+
+const directoryPaths = ["assets", "public", "src/assets"];
+
+function createVariations(iconPath: string): string[] {
+  const paths = [];
+  for (const directoryPath of directoryPaths) {
+    paths.push(...FILE_ENDINGS.map((ending) => `${directoryPath}/${iconPath}${ending}`));
+  }
+  return paths;
+}
 
 const COMMON_ICON_PATHS = [
-  "favicon.svg",
-  "favicon.ico",
-  "favicon.png",
-  "icon.png",
-  "icon.svg",
-  "icon.jpg",
-  "icon.jpeg",
-  "logo.png",
-  "logo.svg",
-  "logo.jpg",
-  "logo.jpeg",
-  "app-icon.png",
-  "appIcon.png",
-  "assets/icon.png",
-  "assets/logo.png",
-  "public/icon.png",
-  "public/logo.png",
-  "public/favicon.svg",
-  "public/favicon.png",
-  "public/favicon.ico",
-  "src/assets/icon.png",
-  "src/assets/logo.png",
+  ...createVariations("icon"),
+  ...createVariations("favicon"),
+  ...createVariations("logo"),
+  ...createVariations("app-icon"),
+  ...createVariations("appIcon"),
 ];
 
 export const DEFAULT_ICON_VALUE = "__default__";
 
 async function getCachedIconForProject(projectPath: string): Promise<string | null | undefined> {
   try {
-    const cacheJson = await LocalStorage.getItem(DEFAULT_ICON_CACHE_KEY);
+    const cacheJson = await LocalStorage.getItem(getStorageKey("project-icon", projectPath));
     if (cacheJson && typeof cacheJson === "string") {
-      const cache = JSON.parse(cacheJson) as Record<string, string | null>;
-      return cache[projectPath];
+      const cached = JSON.parse(cacheJson) as string | null;
+      return cached;
     }
     return undefined;
   } catch {
@@ -45,14 +40,9 @@ async function getCachedIconForProject(projectPath: string): Promise<string | nu
 
 async function setCachedIconForProject(projectPath: string, iconPath: string | null): Promise<void> {
   try {
-    const cacheJson = await LocalStorage.getItem(DEFAULT_ICON_CACHE_KEY);
-    const cache: Record<string, string | null> =
-      cacheJson && typeof cacheJson === "string" ? JSON.parse(cacheJson) : {};
-    cache[projectPath] = iconPath;
-    await LocalStorage.setItem(DEFAULT_ICON_CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    const cache: Record<string, string | null> = { [projectPath]: iconPath };
-    await LocalStorage.setItem(DEFAULT_ICON_CACHE_KEY, JSON.stringify(cache));
+    await LocalStorage.setItem(getStorageKey("project-icon", projectPath), JSON.stringify(iconPath));
+  } catch (err) {
+    console.error(`Failed to cache icon for ${projectPath}:`, err);
   }
 }
 

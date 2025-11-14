@@ -1,43 +1,44 @@
 import { LocalStorage } from "@raycast/api";
 import { z } from "zod";
-import { PROJECT_METADATA_KEY } from "./constants";
+import { getStorageKey } from "./constants";
 
 const projectMetadataSchema = z.object({
   starred: z.boolean().optional().default(false),
   lastOpened: z.number().optional(),
 });
 
-const projectMetadataMapSchema = z.record(z.string(), projectMetadataSchema);
-
 export type ProjectMetadata = z.infer<typeof projectMetadataSchema>;
-export type ProjectMetadataMap = z.infer<typeof projectMetadataMapSchema>;
 
-export async function getProjectMetadataMap(): Promise<ProjectMetadataMap> {
+export async function getProjectMetadata(projectPath: string): Promise<ProjectMetadata> {
   try {
-    const metadataJson = await LocalStorage.getItem(PROJECT_METADATA_KEY);
+    const metadataJson = await LocalStorage.getItem(getStorageKey("project-metadata", projectPath));
     if (metadataJson && typeof metadataJson === "string") {
       const parsed = JSON.parse(metadataJson);
-      return projectMetadataMapSchema.parse(parsed);
+      return projectMetadataSchema.parse(parsed);
     }
-    return {};
+    return { starred: false };
   } catch {
-    return {};
+    return { starred: false };
   }
 }
 
-export async function getProjectMetadata(projectPath: string): Promise<ProjectMetadata> {
-  const metadataMap = await getProjectMetadataMap();
-  return metadataMap[projectPath] || { starred: false };
-}
-
 export async function updateProjectMetadata(projectPath: string, updates: Partial<ProjectMetadata>): Promise<void> {
-  const metadataMap = await getProjectMetadataMap();
-  const currentMetadata = metadataMap[projectPath] || { starred: false };
-  metadataMap[projectPath] = {
+  const currentMetadata = await getProjectMetadata(projectPath);
+  const updatedMetadata: ProjectMetadata = {
     ...currentMetadata,
     ...updates,
   };
-  await LocalStorage.setItem(PROJECT_METADATA_KEY, JSON.stringify(metadataMap));
+  await LocalStorage.setItem(getStorageKey("project-metadata", projectPath), JSON.stringify(updatedMetadata));
+}
+
+export async function getProjectMetadataMap(projectPaths: string[]): Promise<Record<string, ProjectMetadata>> {
+  const metadataMap: Record<string, ProjectMetadata> = {};
+  await Promise.all(
+    projectPaths.map(async (projectPath) => {
+      metadataMap[projectPath] = await getProjectMetadata(projectPath);
+    }),
+  );
+  return metadataMap;
 }
 
 export async function toggleStarred(projectPath: string): Promise<boolean> {

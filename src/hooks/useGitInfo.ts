@@ -4,7 +4,7 @@ import { join } from "path";
 import { useEffect, useState } from "react";
 import simpleGit, { SimpleGit } from "simple-git";
 import { z } from "zod";
-import { GIT_INFO_CACHE_KEY } from "../utils/constants";
+import { getStorageKey } from "../utils/constants";
 import { isWslPath } from "../utils/wslUtils";
 
 const gitInfoSchema = z.object({
@@ -87,7 +87,7 @@ async function getGitInstance(projectPath: string): Promise<SimpleGit> {
 
 async function getCachedGitInfo(projectPath: string): Promise<GitInfo | null> {
   try {
-    const cacheJson = await LocalStorage.getItem(`${GIT_INFO_CACHE_KEY}:${projectPath}`);
+    const cacheJson = await LocalStorage.getItem(getStorageKey("git-info", projectPath));
     if (cacheJson && typeof cacheJson === "string") {
       const parsed = JSON.parse(cacheJson);
       return gitInfoSchema.parse(parsed);
@@ -100,7 +100,7 @@ async function getCachedGitInfo(projectPath: string): Promise<GitInfo | null> {
 
 async function setCachedGitInfo(projectPath: string, info: GitInfo): Promise<void> {
   try {
-    await LocalStorage.setItem(`${GIT_INFO_CACHE_KEY}:${projectPath}`, JSON.stringify(info));
+    await LocalStorage.setItem(getStorageKey("git-info", projectPath), JSON.stringify(info));
   } catch (err) {
     console.error(`Failed to cache git info for ${projectPath}:`, err);
   }

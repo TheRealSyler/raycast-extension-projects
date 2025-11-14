@@ -1,4 +1,4 @@
-import { LocalStorage, getPreferenceValues } from "@raycast/api";
+import { getPreferenceValues, LocalStorage } from "@raycast/api";
 import { readdir } from "fs/promises";
 import { join } from "path";
 import { useCallback, useEffect, useState } from "react";
@@ -35,7 +35,8 @@ export function useProjects(): { projects: Project[]; isLoading: boolean; error:
       const cachedProjects = await getCachedProjects();
       if (cancelled) return;
       if (cachedProjects) {
-        const metadataMap = await getProjectMetadataMap();
+        const projectPaths = cachedProjects.map((p) => p.path);
+        const metadataMap = await getProjectMetadataMap(projectPaths);
         const sortedProjects = [...cachedProjects];
         sortProjectsByMetadata(sortedProjects, metadataMap);
         setProjects(sortedProjects);
@@ -72,7 +73,8 @@ export function useProjects(): { projects: Project[]; isLoading: boolean; error:
 
         if (cancelled) return;
 
-        const metadataMap = await getProjectMetadataMap();
+        const projectPaths = projectList.map((p) => p.path);
+        const metadataMap = await getProjectMetadataMap(projectPaths);
 
         sortProjectsByMetadata(projectList, metadataMap);
 

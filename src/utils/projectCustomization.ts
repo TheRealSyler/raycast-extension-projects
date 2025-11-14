@@ -1,27 +1,24 @@
 import { LocalStorage } from "@raycast/api";
 import { z } from "zod";
-import { CUSTOMIZATIONS_KEY } from "./constants";
+import { getStorageKey } from "./constants";
 
 const projectCustomizationSchema = z.object({
   icon: z.string().optional(),
   color: z.string().optional(),
 });
 
-const projectCustomizationsSchema = z.record(z.string(), projectCustomizationSchema);
-
 export type ProjectCustomization = z.infer<typeof projectCustomizationSchema>;
-export type ProjectCustomizations = z.infer<typeof projectCustomizationsSchema>;
 
-export async function getProjectCustomizations(): Promise<ProjectCustomizations> {
+export async function getProjectCustomization(projectPath: string): Promise<ProjectCustomization | null> {
   try {
-    const customizationsJson = await LocalStorage.getItem(CUSTOMIZATIONS_KEY);
-    if (customizationsJson && typeof customizationsJson === "string") {
-      const parsed = JSON.parse(customizationsJson);
-      return projectCustomizationsSchema.parse(parsed);
+    const customizationJson = await LocalStorage.getItem(getStorageKey("customizations", projectPath));
+    if (customizationJson && typeof customizationJson === "string") {
+      const parsed = JSON.parse(customizationJson);
+      return projectCustomizationSchema.parse(parsed);
     }
-    return {};
+    return null;
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -29,22 +26,16 @@ export async function saveProjectCustomization(
   projectPath: string,
   customization: Partial<ProjectCustomization> | null,
 ): Promise<void> {
-  const customizations = await getProjectCustomizations();
-
   if (customization === null) {
-    delete customizations[projectPath];
+    await LocalStorage.removeItem(getStorageKey("customizations", projectPath));
   } else if (customization.icon === undefined && customization.color === undefined) {
-    delete customizations[projectPath];
+    await LocalStorage.removeItem(getStorageKey("customizations", projectPath));
   } else {
-    customizations[projectPath] = {
-      ...customizations[projectPath],
+    const currentCustomization = await getProjectCustomization(projectPath);
+    const updatedCustomization: ProjectCustomization = {
+      ...currentCustomization,
       ...customization,
     };
+    await LocalStorage.setItem(getStorageKey("customizations", projectPath), JSON.stringify(updatedCustomization));
   }
-  await LocalStorage.setItem(CUSTOMIZATIONS_KEY, JSON.stringify(customizations));
-}
-
-export async function getProjectCustomization(projectPath: string): Promise<ProjectCustomization | null> {
-  const customizations = await getProjectCustomizations();
-  return customizations[projectPath] || null;
 }
