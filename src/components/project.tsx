@@ -1,22 +1,23 @@
 import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
-import { Project } from "../hooks/useProjects";
 import { useGitInfo } from "../hooks/useGitInfo";
-import { ProjectCustomization, ProjectCustomizations } from "../utils/projectCustomization";
-import { getProjectMetadata, toggleStarred } from "../utils/projectMetadata";
+import { useIcon } from "../hooks/useIcon";
+import type { Project } from "../hooks/useProjects";
 import { openInEditor } from "../utils/openInEditor";
+import type { ProjectCustomization } from "../utils/projectCustomization";
+import { getProjectMetadata, toggleStarred } from "../utils/projectMetadata";
 import { CustomizeProjectForm } from "./customizeProjectForm";
 
 type ProjectProps = {
   project: Project;
-  customizations: ProjectCustomizations;
-  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization>) => Promise<void>;
+  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization> | null) => Promise<void>;
   onStarToggle?: () => void;
   onOpen?: () => void;
 };
 
-export function Project({ project, customizations, onCustomize, onStarToggle, onOpen }: ProjectProps) {
+export function Project({ project, onCustomize, onStarToggle, onOpen }: ProjectProps) {
   const { gitInfo, isLoading } = useGitInfo(project.path);
+  const iconResult = useIcon(project.path);
   const [isStarred, setIsStarred] = useState(false);
   const [lastOpened, setLastOpened] = useState<number | undefined>(undefined);
 
@@ -35,8 +36,6 @@ export function Project({ project, customizations, onCustomize, onStarToggle, on
     setIsStarred(newStarredStatus);
     onStarToggle?.();
   };
-
-  const customization = customizations[project.path];
 
   const accessories: List.Item.Accessory[] = [];
   if (isStarred) {
@@ -63,7 +62,11 @@ export function Project({ project, customizations, onCustomize, onStarToggle, on
     <List.Item
       key={project.path}
       title={project.name}
-      icon={customization ? { source: customization.icon, tintColor: customization.color } : { source: "" }}
+      icon={
+        iconResult.tintColor
+          ? { source: iconResult.source, tintColor: iconResult.tintColor }
+          : { source: iconResult.source }
+      }
       accessories={accessories}
       actions={
         <ActionPanel>

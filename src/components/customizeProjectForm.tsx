@@ -1,23 +1,27 @@
 import { Action, ActionPanel, Color, Form, Icon, popToRoot, showToast, Toast } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { Project } from "../hooks/useProjects";
+import type { Project } from "../hooks/useProjects";
 import { COMMON_COLORS, COMMON_ICONS } from "../utils/constants";
-import { getProjectCustomization, ProjectCustomization } from "../utils/projectCustomization";
+import { DEFAULT_ICON_VALUE, findDefaultIcon } from "../utils/findDefaultIcon";
+import { getProjectCustomization, type ProjectCustomization } from "../utils/projectCustomization";
 
 interface CustomizeProjectFormProps {
   project: Project;
-  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization>) => Promise<void>;
+  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization> | null) => Promise<void>;
 }
 
 export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectFormProps) {
   const [currentCustomization, setCurrentCustomization] = useState<ProjectCustomization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [defaultIconPath, setDefaultIconPath] = useState<string | null>(null);
   const [_currentColor, setCurrentColor] = useState<string>();
 
   useEffect(() => {
     (async () => {
       const customization = await getProjectCustomization(project.path);
       setCurrentCustomization(customization || null);
+      const defaultIcon = await findDefaultIcon(project.path);
+      setDefaultIconPath(defaultIcon);
       setIsLoading(false);
     })();
   }, [project.path]);
@@ -26,7 +30,8 @@ export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectF
     return <Form isLoading={true} />;
   }
 
-  const currentIcon = currentCustomization?.icon || Icon.Code;
+  // Determine current icon: use customization if set, otherwise use default icon value or fallback
+  const currentIcon = currentCustomization?.icon || (defaultIconPath ? DEFAULT_ICON_VALUE : Icon.Code);
   const currentColor = _currentColor || currentCustomization?.color || Color.Blue;
 
   return (
@@ -36,10 +41,14 @@ export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectF
           <Action.SubmitForm
             title="Save Customization"
             onSubmit={async (values) => {
-              const customization: ProjectCustomization = {
-                icon: values.icon || undefined,
-                color: values.color || undefined,
-              };
+              const customization: ProjectCustomization | null =
+                values.icon === DEFAULT_ICON_VALUE
+                  ? null
+                  : {
+                      icon: values.icon,
+                      color: values.color,
+                    };
+
               await onCustomize(project.path, customization);
               await showToast({
                 style: Toast.Style.Success,
@@ -74,9 +83,17 @@ export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectF
       <Form.Description title="Path" text={project.path} />
       <Form.Separator />
       <Form.Dropdown id="icon" title="Icon" defaultValue={currentIcon} info="Choose an icon for this project">
-        {COMMON_ICONS.map((icon) => (
+        {defaultIconPath && (
           <Form.Dropdown.Item
-            key={icon.value}
+            key={DEFAULT_ICON_VALUE}
+            value={DEFAULT_ICON_VALUE}
+            title="Use Default (Project Icon)"
+            icon={{ source: defaultIconPath }}
+          />
+        )}
+        {COMMON_ICONS.map((icon, index) => (
+          <Form.Dropdown.Item
+            key={index}
             value={icon.value}
             title={icon.title}
             icon={{ source: icon.value, tintColor: currentColor }}

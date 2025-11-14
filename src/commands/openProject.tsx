@@ -1,29 +1,18 @@
 import { Icon, List } from "@raycast/api";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Project } from "../components/project";
 import { useProjects } from "../hooks/useProjects";
-import {
-  ProjectCustomization,
-  ProjectCustomizations,
-  getProjectCustomizations,
-  saveProjectCustomization,
-} from "../utils/projectCustomization";
+import { ProjectCustomization, saveProjectCustomization } from "../utils/projectCustomization";
 
 export default function Command() {
   const { projects, isLoading, error, refresh } = useProjects();
-  const [customizations, setCustomizations] = useState<ProjectCustomizations>({});
 
-  useEffect(() => {
-    (async () => {
-      const customizationsData = await getProjectCustomizations();
-      setCustomizations(customizationsData);
-    })();
-  }, []);
-
-  const handleCustomize = useCallback(async (projectPath: string, customization: Partial<ProjectCustomization>) => {
-    await saveProjectCustomization(projectPath, customization);
-    setCustomizations(await getProjectCustomizations());
-  }, []);
+  const handleCustomize = useCallback(
+    async (projectPath: string, customization: Partial<ProjectCustomization> | null) => {
+      await saveProjectCustomization(projectPath, customization);
+    },
+    [],
+  );
 
   if (error) {
     return (
@@ -46,7 +35,6 @@ export default function Command() {
           <Project
             key={project.path}
             project={project}
-            customizations={customizations}
             onCustomize={handleCustomize}
             onStarToggle={refresh}
             onOpen={refresh}

@@ -27,14 +27,15 @@ export async function getProjectCustomizations(): Promise<ProjectCustomizations>
 
 export async function saveProjectCustomization(
   projectPath: string,
-  customization: Partial<ProjectCustomization>,
+  customization: Partial<ProjectCustomization> | null,
 ): Promise<void> {
   const customizations = await getProjectCustomizations();
-  if (customization.icon === undefined && customization.color === undefined) {
-    // Remove customization if both are undefined
+
+  if (customization === null) {
+    delete customizations[projectPath];
+  } else if (customization.icon === undefined && customization.color === undefined) {
     delete customizations[projectPath];
   } else {
-    // Merge with existing customization
     customizations[projectPath] = {
       ...customizations[projectPath],
       ...customization,
