@@ -67,7 +67,6 @@ export function Project({ project, refresh }: ProjectProps) {
 
       refresh();
     } catch (error) {
-      console.log("error", error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Failed to delete project",
