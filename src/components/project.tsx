@@ -11,9 +11,10 @@ import { CustomizeProjectForm } from "./customizeProjectForm";
 type ProjectProps = {
   project: Project;
   refresh: () => void;
+  showPath?: boolean;
 };
 
-export function Project({ project, refresh }: ProjectProps) {
+export function Project({ project, refresh, showPath = false }: ProjectProps) {
   const { gitInfo, isLoading } = useGitInfo(project.path);
   const [isDeleting, setIsDeleting] = useState(false);
   const iconResult = useIcon(project.path);
@@ -102,6 +103,7 @@ export function Project({ project, refresh }: ProjectProps) {
       <List.Item
         key={project.path}
         title={project.name}
+        subtitle={showPath ? project.path : undefined}
         icon={
           iconResult.tintColor
             ? { source: iconResult.source, tintColor: iconResult.tintColor }
@@ -116,6 +118,7 @@ export function Project({ project, refresh }: ProjectProps) {
     <List.Item
       key={project.path}
       title={project.name}
+      subtitle={showPath ? project.path : undefined}
       icon={
         iconResult.tintColor
           ? { source: iconResult.source, tintColor: iconResult.tintColor }
