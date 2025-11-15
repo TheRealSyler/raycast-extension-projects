@@ -3,7 +3,7 @@ import { Project } from "./components/project";
 import { useProjects } from "./hooks/useProjects";
 
 export default function Command() {
-  const { projects, isLoading, error } = useProjects();
+  const { projects, isLoading, error, refresh } = useProjects();
 
   if (error) {
     return (
@@ -22,7 +22,7 @@ export default function Command() {
           description={`No projects found in the specified directories`}
         />
       ) : (
-        projects.map((project) => <Project key={project.path} project={project} />)
+        projects.map((project) => <Project key={project.path} project={project} refresh={refresh} />)
       )}
     </List>
   );

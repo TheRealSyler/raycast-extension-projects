@@ -2,8 +2,7 @@ import { Color, Icon } from "@raycast/api";
 
 export const PROJECTS_CACHE_KEY = "projects-cache";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const STORAGE_KEYS = ["customizations", "git-info", "project-metadata", "project-icon"] as const;
+export const STORAGE_KEYS = ["customizations", "git-info", "project-metadata", "project-icon"] as const;
 
 type StorageKey = (typeof STORAGE_KEYS)[number];
 
