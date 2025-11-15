@@ -7,9 +7,15 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "commands/openProject",
+      "name": "openProject",
       "title": "Open Project",
       "description": "Open a project in your code editor",
+      "mode": "view"
+    },
+    {
+      "name": "addProject",
+      "title": "Add Project",
+      "description": "Create a new project with git, vite, or custom initialization",
       "mode": "view"
     }
   ],
@@ -38,6 +44,14 @@
           "value": "code"
         }
       ]
+    },
+    {
+      "name": "packageManager",
+      "type": "textfield",
+      "required": false,
+      "title": "Package Manager",
+      "description": "Package manager to use when creating new projects, defaults to npm",
+      "placeholder": "npm"
     }
   ],
   "dependencies": {
@@ -52,6 +66,7 @@
     "@types/node": "22.13.10",
     "@types/react": "19.0.10",
     "eslint": "^9.22.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2"
   },

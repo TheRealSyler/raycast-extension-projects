@@ -1,21 +1,17 @@
-import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Color, Icon, List, popToRoot } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import { useGitInfo } from "../hooks/useGitInfo";
 import { useIcon } from "../hooks/useIcon";
 import type { Project } from "../hooks/useProjects";
 import { openInEditor } from "../utils/openInEditor";
-import type { ProjectCustomization } from "../utils/projectCustomization";
 import { getProjectMetadata, toggleStarred } from "../utils/projectMetadata";
 import { CustomizeProjectForm } from "./customizeProjectForm";
 
 type ProjectProps = {
   project: Project;
-  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization> | null) => Promise<void>;
-  onStarToggle?: () => void;
-  onOpen?: () => void;
 };
 
-export function Project({ project, onCustomize, onStarToggle, onOpen }: ProjectProps) {
+export function Project({ project }: ProjectProps) {
   const { gitInfo, isLoading } = useGitInfo(project.path);
   const iconResult = useIcon(project.path);
   const [isStarred, setIsStarred] = useState(false);
@@ -27,14 +23,12 @@ export function Project({ project, onCustomize, onStarToggle, onOpen }: ProjectP
     setLastOpened(metadata.lastOpened);
   }, [project.path]);
 
-  useEffect(() => {
-    loadMetadata();
-  }, [loadMetadata]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => void loadMetadata(), [loadMetadata]);
 
   const handleToggleStar = async () => {
     const newStarredStatus = await toggleStarred(project.path);
     setIsStarred(newStarredStatus);
-    onStarToggle?.();
   };
 
   const accessories: List.Item.Accessory[] = [];
@@ -75,7 +69,7 @@ export function Project({ project, onCustomize, onStarToggle, onOpen }: ProjectP
             onAction={async () => {
               await openInEditor(project.path);
               await loadMetadata();
-              onOpen?.();
+              popToRoot();
             }}
           />
           <Action
@@ -87,7 +81,7 @@ export function Project({ project, onCustomize, onStarToggle, onOpen }: ProjectP
           <Action.Push
             title="Customize Project"
             icon={Icon.Brush}
-            target={<CustomizeProjectForm project={project} onCustomize={onCustomize} />}
+            target={<CustomizeProjectForm project={project} />}
           />
         </ActionPanel>
       }

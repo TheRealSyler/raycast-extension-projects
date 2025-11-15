@@ -1,25 +1,27 @@
-import { Action, ActionPanel, Color, Form, Icon, popToRoot, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Color, Form, Icon, showToast, Toast, useNavigation } from "@raycast/api";
 import { useEffect, useState } from "react";
+import {
+  saveProjectCustomization,
+  useProjectCustomization,
+  type ProjectCustomization,
+} from "../hooks/useCustomization";
 import type { Project } from "../hooks/useProjects";
 import { COMMON_COLORS, COMMON_ICONS } from "../utils/constants";
 import { DEFAULT_ICON_VALUE, findDefaultIcon, getCachedDefaultIcon } from "../utils/findDefaultIcon";
-import { getProjectCustomization, type ProjectCustomization } from "../utils/projectCustomization";
 
 interface CustomizeProjectFormProps {
   project: Project;
-  onCustomize: (projectPath: string, customization: Partial<ProjectCustomization> | null) => Promise<void>;
 }
 
-export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectFormProps) {
-  const [currentCustomization, setCurrentCustomization] = useState<ProjectCustomization | null>(null);
+export function CustomizeProjectForm({ project }: CustomizeProjectFormProps) {
+  const navigation = useNavigation();
+  const [currentCustomization] = useProjectCustomization(project.path);
   const [isLoading, setIsLoading] = useState(true);
   const [defaultIconPath, setDefaultIconPath] = useState<string | null>(null);
   const [_currentColor, setCurrentColor] = useState<string>();
 
   useEffect(() => {
     (async () => {
-      const customization = await getProjectCustomization(project.path);
-      setCurrentCustomization(customization || null);
       const cachedDefaultIcon = await getCachedDefaultIcon(project.path);
       if (cachedDefaultIcon) {
         setDefaultIconPath(cachedDefaultIcon);
@@ -52,14 +54,13 @@ export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectF
                       icon: values.icon,
                       color: values.color,
                     };
-
-              await onCustomize(project.path, customization);
+              await saveProjectCustomization(project.path, customization);
               await showToast({
                 style: Toast.Style.Success,
                 title: "Customization saved",
                 message: `Customization saved for ${project.name}`,
               });
-              popToRoot();
+              navigation.pop();
             }}
             icon={Icon.Check}
           />
@@ -68,13 +69,13 @@ export function CustomizeProjectForm({ project, onCustomize }: CustomizeProjectF
             <Action
               title="Reset to Default"
               onAction={async () => {
-                await onCustomize(project.path, { icon: undefined, color: undefined });
+                await saveProjectCustomization(project.path, null);
                 await showToast({
                   style: Toast.Style.Success,
                   title: "Customization reset",
                   message: `Customization reset for ${project.name}`,
                 });
-                popToRoot();
+                navigation.pop();
               }}
               icon={Icon.ArrowCounterClockwise}
               style={Action.Style.Destructive}

@@ -9,7 +9,6 @@ const execAsync = promisify(exec);
 async function getCommand(projectPath: string): Promise<string> {
   const preferences = getPreferenceValues<Preferences>();
   if (isWslPath(projectPath)) {
-    console.log(preferences);
     const defaultDistro = await getDefaultWslDistro();
     if (!defaultDistro) {
       throw new Error("Could not find default WSL distro");
